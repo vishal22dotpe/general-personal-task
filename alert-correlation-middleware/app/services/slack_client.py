@@ -190,7 +190,10 @@ def _build_thread_reply_blocks(
     alert: NormalizedAlert,
     state: Optional[AlertState] = None,
 ) -> List[Dict[str, Any]]:
-    """Build a rich thread reply matching the firing alert template."""
+    """
+    Build thread reply blocks that exactly mirror the firing alert template,
+    but with RESOLVED status and timing information added.
+    """
     duration = ""
     if state and state.first_fired_at:
         ends = alert.ends_at or datetime.now(timezone.utc)
@@ -206,6 +209,7 @@ def _build_thread_reply_blocks(
         parts.append(f"{secs}s")
         duration = " ".join(parts)
 
+    # ── Header (same style as firing, but RESOLVED) ──────────
     blocks: List[Dict[str, Any]] = [
         {
             "type": "header",
@@ -224,27 +228,45 @@ def _build_thread_reply_blocks(
         },
     ]
 
+    # ── Summary (same as firing) ─────────────────────────────
     if alert.summary:
         blocks.append({
             "type": "section",
             "text": {"type": "mrkdwn", "text": f"*Summary:* {alert.summary}"},
         })
 
-    # Labels (same style as firing)
+    # ── Description (same as firing) ─────────────────────────
+    if alert.description:
+        blocks.append({
+            "type": "section",
+            "text": {"type": "mrkdwn", "text": f"*Description:* {alert.description[:500]}"},
+        })
+
+    # ── Labels grid (same as firing) ─────────────────────────
     fields = []
-    labels_to_show = alert.labels if alert.labels else (state and {
-        "alert_name": state.alert_name,
-        "source": state.source,
-    } or {})
-    for k, v in list(labels_to_show.items())[:8]:
-        fields.append({"type": "mrkdwn", "text": f"*{k}:*\n`{v}`"})
+    if alert.labels:
+        for k, v in list(alert.labels.items())[:8]:
+            fields.append({"type": "mrkdwn", "text": f"*{k}:*\n`{v}`"})
     if fields:
         blocks.append({
             "type": "section",
             "fields": fields[:10],
         })
 
-    # Timing details
+    # ── Runbook / dashboard links (same as firing) ───────────
+    links = []
+    for key in ("runbook_url", "dashboardURL", "panelURL", "monitor_url", "alert_url"):
+        url = alert.annotations.get(key)
+        if url:
+            label = key.replace("_", " ").replace("URL", " URL").title()
+            links.append(f"<{url}|{label}>")
+    if links:
+        blocks.append({
+            "type": "context",
+            "elements": [{"type": "mrkdwn", "text": " | ".join(links)}],
+        })
+
+    # ── Timing (extra info for resolved) ─────────────────────
     timing_parts = []
     if state and state.first_fired_at:
         timing_parts.append(f"*Fired at:* {state.first_fired_at.strftime('%Y-%m-%d %H:%M:%S UTC')}")
@@ -260,10 +282,11 @@ def _build_thread_reply_blocks(
         "text": {"type": "mrkdwn", "text": "\n".join(timing_parts)},
     })
 
+    # ── Footer (same style as firing) ────────────────────────
     blocks.append({
         "type": "context",
         "elements": [
-            {"type": "mrkdwn", "text": f"🔖 `{alert.fingerprint}` | ✅ Resolved"},
+            {"type": "mrkdwn", "text": f"🔖 `{alert.fingerprint}` | ✅ Resolved at {resolved_at}"},
         ],
     })
 
@@ -402,6 +425,7 @@ async def post_thread_reply(
         "thread_ts": state.slack_message_ts,
         "text": f"✅ Resolved: {alert.alert_name}",
         "blocks": blocks,
+        "attachments": [{"color": COLOR_RESOLVED, "blocks": []}],
         "unfurl_links": False,
     }
 
