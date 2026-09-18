@@ -190,7 +190,7 @@ def _build_thread_reply_blocks(
     alert: NormalizedAlert,
     state: Optional[AlertState] = None,
 ) -> List[Dict[str, Any]]:
-    """Build a concise thread reply for resolution details."""
+    """Build a rich thread reply matching the firing alert template."""
     duration = ""
     if state and state.first_fired_at:
         ends = alert.ends_at or datetime.now(timezone.utc)
@@ -206,19 +206,68 @@ def _build_thread_reply_blocks(
         parts.append(f"{secs}s")
         duration = " ".join(parts)
 
-    resolved_at = (alert.ends_at or datetime.now(timezone.utc)).strftime("%Y-%m-%d %H:%M:%S UTC")
-    text = f"✅ *Alert Resolved*\n*Resolved at:* {resolved_at}"
-    if duration:
-        text += f"\n*Duration:* {duration}"
-    if state and state.firing_count > 1:
-        text += f"\n*Total firings during incident:* {state.firing_count}"
-
-    return [
+    blocks: List[Dict[str, Any]] = [
+        {
+            "type": "header",
+            "text": {
+                "type": "plain_text",
+                "text": f"✅ RESOLVED: {alert.alert_name}",
+                "emoji": True,
+            },
+        },
         {
             "type": "section",
-            "text": {"type": "mrkdwn", "text": text},
-        }
+            "text": {
+                "type": "mrkdwn",
+                "text": f"*Source:* `{alert.source}` | *Severity:* `{alert.severity}` | *Status:* ✅ `RESOLVED`",
+            },
+        },
     ]
+
+    if alert.summary:
+        blocks.append({
+            "type": "section",
+            "text": {"type": "mrkdwn", "text": f"*Summary:* {alert.summary}"},
+        })
+
+    # Labels (same style as firing)
+    fields = []
+    labels_to_show = alert.labels if alert.labels else (state and {
+        "alert_name": state.alert_name,
+        "source": state.source,
+    } or {})
+    for k, v in list(labels_to_show.items())[:8]:
+        fields.append({"type": "mrkdwn", "text": f"*{k}:*\n`{v}`"})
+    if fields:
+        blocks.append({
+            "type": "section",
+            "fields": fields[:10],
+        })
+
+    # Timing details
+    timing_parts = []
+    if state and state.first_fired_at:
+        timing_parts.append(f"*Fired at:* {state.first_fired_at.strftime('%Y-%m-%d %H:%M:%S UTC')}")
+    resolved_at = (alert.ends_at or datetime.now(timezone.utc)).strftime("%Y-%m-%d %H:%M:%S UTC")
+    timing_parts.append(f"*Resolved at:* {resolved_at}")
+    if duration:
+        timing_parts.append(f"*Duration:* {duration}")
+    if state and state.firing_count > 1:
+        timing_parts.append(f"*Total firings:* {state.firing_count}")
+
+    blocks.append({
+        "type": "section",
+        "text": {"type": "mrkdwn", "text": "\n".join(timing_parts)},
+    })
+
+    blocks.append({
+        "type": "context",
+        "elements": [
+            {"type": "mrkdwn", "text": f"🔖 `{alert.fingerprint}` | ✅ Resolved"},
+        ],
+    })
+
+    return blocks
 
 
 # ──────────────────────────────────────────────────────────────
