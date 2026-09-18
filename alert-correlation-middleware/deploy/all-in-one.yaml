@@ -160,14 +160,8 @@ spec:
       serviceAccountName: alert-middleware-sa
       containers:
         - name: alert-middleware
-          # ⚠️ REPLACE with your image after docker build
-          # If building locally on same machine:
-          #   docker build -t alert-correlation-middleware:1.0.0 .
-          #   then use: alert-correlation-middleware:1.0.0
-          # If using a registry:
-          #   <registry>/alert-correlation-middleware:1.0.0
-          image: alert-correlation-middleware:1.0.0
-          imagePullPolicy: IfNotPresent
+          image: 945006980673.dkr.ecr.ap-south-1.amazonaws.com/test:latest
+          imagePullPolicy: Always
           ports:
             - name: http
               containerPort: 8000
