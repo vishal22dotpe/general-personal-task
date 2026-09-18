@@ -160,7 +160,7 @@ spec:
       serviceAccountName: alert-middleware-sa
       containers:
         - name: alert-middleware
-          image: 945006980673.dkr.ecr.ap-south-1.amazonaws.com/test:latest
+          image: vishalrai555/alert-correlation-middleware:1.0.0
           imagePullPolicy: Always
           ports:
             - name: http
