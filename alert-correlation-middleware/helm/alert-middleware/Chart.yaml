@@ -1,0 +1,23 @@
+apiVersion: v2
+name: alert-correlation-middleware
+description: >-
+  Slack Alert Correlation Middleware — correlates firing and resolved alerts
+  from Prometheus/Alertmanager, Grafana, CloudWatch, and OpenSearch into
+  threaded Slack messages, reducing alert fatigue by ~50%.
+type: application
+version: 1.0.0
+appVersion: "1.0.0"
+keywords:
+  - alerting
+  - slack
+  - observability
+  - prometheus
+  - grafana
+  - cloudwatch
+  - opensearch
+  - alert-correlation
+maintainers:
+  - name: Platform Engineering
+home: https://github.com/your-org/alert-correlation-middleware
+sources:
+  - https://github.com/your-org/alert-correlation-middleware

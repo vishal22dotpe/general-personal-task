@@ -1,0 +1,15 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ include "alert-middleware.fullname" . }}-config
+  labels:
+    {{- include "alert-middleware.labels" . | nindent 4 }}
+data:
+  SLACK_DEFAULT_CHANNEL: {{ .Values.config.slackDefaultChannel | quote }}
+  REDIS_TTL_SECONDS: {{ .Values.config.redisTtlSeconds | quote }}
+  DEDUP_WINDOW_SECONDS: {{ .Values.config.dedupWindowSeconds | quote }}
+  RESOLVE_UPDATE_ORIGINAL: {{ .Values.config.resolveUpdateOriginal | quote }}
+  RESOLVE_THREAD_REPLY: {{ .Values.config.resolveThreadReply | quote }}
+  LOG_LEVEL: {{ .Values.config.logLevel | quote }}
+  ENVIRONMENT: {{ .Values.config.environment | quote }}
+  APP_PORT: "8000"

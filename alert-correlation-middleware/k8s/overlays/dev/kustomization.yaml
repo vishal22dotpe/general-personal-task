@@ -1,0 +1,67 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+namespace: alert-middleware-dev
+
+namePrefix: dev-
+
+resources:
+  - ../../base
+
+patches:
+  # ── Scale down for dev ───────────────────────────────────
+  - target:
+      kind: Deployment
+      name: alert-middleware
+    patch: |
+      - op: replace
+        path: /spec/replicas
+        value: 1
+      - op: replace
+        path: /spec/template/spec/containers/0/resources/requests/cpu
+        value: 50m
+      - op: replace
+        path: /spec/template/spec/containers/0/resources/requests/memory
+        value: 64Mi
+      - op: replace
+        path: /spec/template/spec/containers/0/resources/limits/cpu
+        value: 200m
+      - op: replace
+        path: /spec/template/spec/containers/0/resources/limits/memory
+        value: 128Mi
+
+  # ── Dev HPA: lower thresholds ────────────────────────────
+  - target:
+      kind: HorizontalPodAutoscaler
+      name: alert-middleware-hpa
+    patch: |
+      - op: replace
+        path: /spec/minReplicas
+        value: 1
+      - op: replace
+        path: /spec/maxReplicas
+        value: 3
+
+  # ── Dev Redis: smaller storage ───────────────────────────
+  - target:
+      kind: PersistentVolumeClaim
+      name: redis-pvc
+    patch: |
+      - op: replace
+        path: /spec/resources/requests/storage
+        value: 256Mi
+
+  # ── Dev ConfigMap overrides ──────────────────────────────
+  - target:
+      kind: ConfigMap
+      name: alert-middleware-config
+    patch: |
+      - op: replace
+        path: /data/LOG_LEVEL
+        value: DEBUG
+      - op: replace
+        path: /data/ENVIRONMENT
+        value: development
+      - op: replace
+        path: /data/DEDUP_WINDOW_SECONDS
+        value: "60"

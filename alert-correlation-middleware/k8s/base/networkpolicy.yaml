@@ -1,0 +1,40 @@
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: alert-middleware-netpol
+  namespace: alert-middleware
+  labels:
+    app.kubernetes.io/name: alert-correlation-middleware
+spec:
+  podSelector:
+    matchLabels:
+      app.kubernetes.io/name: alert-correlation-middleware
+      app.kubernetes.io/component: app
+  policyTypes:
+    - Ingress
+    - Egress
+  ingress:
+    # Allow inbound HTTP from any namespace (webhook traffic)
+    - ports:
+        - port: 8000
+          protocol: TCP
+  egress:
+    # Allow outbound to Redis
+    - to:
+        - podSelector:
+            matchLabels:
+              app.kubernetes.io/name: alert-correlation-middleware
+              app.kubernetes.io/component: redis
+      ports:
+        - port: 6379
+          protocol: TCP
+    # Allow outbound HTTPS to Slack API
+    - ports:
+        - port: 443
+          protocol: TCP
+    # Allow DNS resolution
+    - ports:
+        - port: 53
+          protocol: UDP
+        - port: 53
+          protocol: TCP

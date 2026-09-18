@@ -1,0 +1,16 @@
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: redis-pvc
+  namespace: alert-middleware
+  labels:
+    app.kubernetes.io/name: alert-correlation-middleware
+    app.kubernetes.io/component: redis
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 1Gi
+  # ⚠️ Specify your storage class, or remove for the cluster default
+  # storageClassName: gp3

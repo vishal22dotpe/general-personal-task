@@ -1,0 +1,14 @@
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: alert-middleware-pdb
+  namespace: alert-middleware
+  labels:
+    app.kubernetes.io/name: alert-correlation-middleware
+    app.kubernetes.io/component: app
+spec:
+  minAvailable: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: alert-correlation-middleware
+      app.kubernetes.io/component: app

@@ -1,0 +1,7 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: alert-middleware
+  labels:
+    app.kubernetes.io/name: alert-correlation-middleware
+    app.kubernetes.io/part-of: observability

@@ -1,0 +1,226 @@
+###############################################################################
+# Alert Correlation Middleware — All-in-One Deployment
+# Namespace: alert-middleware (create separately or uncomment below)
+#
+# Usage:
+#   kubectl apply -f all-in-one.yaml
+#
+# ⚠️ UPDATE these before applying:
+#   1. SLACK_BOT_TOKEN in the Secret (line ~40)
+#   2. SLACK_DEFAULT_CHANNEL in the ConfigMap (line ~60)
+#   3. Image name in Deployment (line ~110) after docker build
+###############################################################################
+
+---
+# ── ServiceAccount ────────────────────────────────────────────
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: alert-middleware-sa
+  namespace: alert-middleware
+  labels:
+    app: alert-middleware
+automountServiceAccountToken: false
+
+---
+# ── Secret (⚠️ UPDATE SLACK_BOT_TOKEN) ───────────────────────
+apiVersion: v1
+kind: Secret
+metadata:
+  name: alert-middleware-secrets
+  namespace: alert-middleware
+  labels:
+    app: alert-middleware
+type: Opaque
+stringData:
+  # ⚠️ REPLACE with your actual Slack Bot token
+  SLACK_BOT_TOKEN: "xoxb-YOUR-SLACK-BOT-TOKEN-HERE"
+  WEBHOOK_SECRET: ""
+
+---
+# ── ConfigMap ─────────────────────────────────────────────────
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: alert-middleware-config
+  namespace: alert-middleware
+  labels:
+    app: alert-middleware
+data:
+  SLACK_DEFAULT_CHANNEL: "#alerts"
+  REDIS_URL: "redis://redis-svc.alert-middleware.svc.cluster.local:6379/0"
+  REDIS_TTL_SECONDS: "604800"
+  DEDUP_WINDOW_SECONDS: "300"
+  RESOLVE_UPDATE_ORIGINAL: "true"
+  RESOLVE_THREAD_REPLY: "true"
+  APP_PORT: "8000"
+  LOG_LEVEL: "INFO"
+  ENVIRONMENT: "production"
+
+---
+# ── Redis Deployment ──────────────────────────────────────────
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: redis
+  namespace: alert-middleware
+  labels:
+    app: alert-middleware
+    component: redis
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: alert-middleware
+      component: redis
+  template:
+    metadata:
+      labels:
+        app: alert-middleware
+        component: redis
+    spec:
+      containers:
+        - name: redis
+          image: redis:7-alpine
+          command:
+            - redis-server
+            - --maxmemory
+            - "128mb"
+            - --maxmemory-policy
+            - allkeys-lru
+            - --appendonly
+            - "yes"
+          ports:
+            - name: redis
+              containerPort: 6379
+          resources:
+            requests:
+              cpu: 50m
+              memory: 64Mi
+            limits:
+              cpu: 200m
+              memory: 256Mi
+          livenessProbe:
+            exec:
+              command: ["redis-cli", "ping"]
+            initialDelaySeconds: 10
+            periodSeconds: 30
+          readinessProbe:
+            exec:
+              command: ["redis-cli", "ping"]
+            initialDelaySeconds: 5
+            periodSeconds: 10
+
+---
+# ── Redis Service ─────────────────────────────────────────────
+apiVersion: v1
+kind: Service
+metadata:
+  name: redis-svc
+  namespace: alert-middleware
+  labels:
+    app: alert-middleware
+    component: redis
+spec:
+  type: ClusterIP
+  ports:
+    - name: redis
+      port: 6379
+      targetPort: redis
+  selector:
+    app: alert-middleware
+    component: redis
+
+---
+# ── App Deployment ────────────────────────────────────────────
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: alert-middleware
+  namespace: alert-middleware
+  labels:
+    app: alert-middleware
+    component: app
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: alert-middleware
+      component: app
+  template:
+    metadata:
+      labels:
+        app: alert-middleware
+        component: app
+      annotations:
+        prometheus.io/scrape: "true"
+        prometheus.io/port: "8000"
+        prometheus.io/path: "/metrics"
+    spec:
+      serviceAccountName: alert-middleware-sa
+      containers:
+        - name: alert-middleware
+          # ⚠️ REPLACE with your image after docker build
+          # If building locally on same machine:
+          #   docker build -t alert-correlation-middleware:1.0.0 .
+          #   then use: alert-correlation-middleware:1.0.0
+          # If using a registry:
+          #   <registry>/alert-correlation-middleware:1.0.0
+          image: alert-correlation-middleware:1.0.0
+          imagePullPolicy: IfNotPresent
+          ports:
+            - name: http
+              containerPort: 8000
+          envFrom:
+            - configMapRef:
+                name: alert-middleware-config
+            - secretRef:
+                name: alert-middleware-secrets
+          resources:
+            requests:
+              cpu: 100m
+              memory: 128Mi
+            limits:
+              cpu: 500m
+              memory: 256Mi
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: http
+            initialDelaySeconds: 10
+            periodSeconds: 30
+            timeoutSeconds: 5
+          readinessProbe:
+            httpGet:
+              path: /ready
+              port: http
+            initialDelaySeconds: 5
+            periodSeconds: 10
+            timeoutSeconds: 5
+          startupProbe:
+            httpGet:
+              path: /health
+              port: http
+            initialDelaySeconds: 5
+            periodSeconds: 5
+            failureThreshold: 10
+
+---
+# ── App Service ───────────────────────────────────────────────
+apiVersion: v1
+kind: Service
+metadata:
+  name: alert-middleware-svc
+  namespace: alert-middleware
+  labels:
+    app: alert-middleware
+    component: app
+spec:
+  type: ClusterIP
+  ports:
+    - name: http
+      port: 80
+      targetPort: http
+  selector:
+    app: alert-middleware
+    component: app

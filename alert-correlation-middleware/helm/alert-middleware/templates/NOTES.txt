@@ -1,0 +1,37 @@
+🎉 Alert Correlation Middleware has been deployed!
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+📡 Webhook Endpoints:
+{{- if .Values.ingress.enabled }}
+{{- range .Values.ingress.hosts }}
+  Alertmanager:  https://{{ .host }}/webhook/alertmanager
+  Grafana:       https://{{ .host }}/webhook/grafana
+  CloudWatch:    https://{{ .host }}/webhook/cloudwatch
+  OpenSearch:    https://{{ .host }}/webhook/opensearch
+  Auto-detect:   https://{{ .host }}/webhook/generic
+{{- end }}
+{{- else }}
+  kubectl port-forward svc/{{ include "alert-middleware.fullname" . }} 8000:{{ .Values.service.port }} -n {{ .Release.Namespace }}
+
+  Then use: http://localhost:8000/webhook/{alertmanager|grafana|cloudwatch|opensearch|generic}
+{{- end }}
+
+🔍 Health & Metrics:
+  Health:    /health
+  Readiness: /ready
+  Metrics:   /metrics (Prometheus format)
+
+⚙️  Configuration:
+  Slack Channel:  {{ .Values.config.slackDefaultChannel }}
+  Dedup Window:   {{ .Values.config.dedupWindowSeconds }}s
+  Redis TTL:      {{ .Values.config.redisTtlSeconds }}s
+  Update Original: {{ .Values.config.resolveUpdateOriginal }}
+  Thread Reply:    {{ .Values.config.resolveThreadReply }}
+
+{{- if not .Values.secrets.slackBotToken }}
+⚠️  WARNING: SLACK_BOT_TOKEN is not set!
+  Set it with: helm upgrade {{ .Release.Name }} . --set secrets.slackBotToken=xoxb-your-token
+{{- end }}
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━

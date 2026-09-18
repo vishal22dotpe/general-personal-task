@@ -1,0 +1,164 @@
+###############################################################################
+# Default values for alert-correlation-middleware Helm chart
+###############################################################################
+
+# ── Image ────────────────────────────────────────────────────
+image:
+  repository: your-registry/alert-correlation-middleware
+  tag: "1.0.0"
+  pullPolicy: IfNotPresent
+
+imagePullSecrets: []
+
+# ── Replicas & Autoscaling ───────────────────────────────────
+replicaCount: 2
+
+autoscaling:
+  enabled: true
+  minReplicas: 2
+  maxReplicas: 10
+  targetCPUUtilizationPercentage: 70
+  targetMemoryUtilizationPercentage: 80
+
+# ── Service ──────────────────────────────────────────────────
+service:
+  type: ClusterIP
+  port: 80
+  targetPort: 8000
+
+# ── Ingress ──────────────────────────────────────────────────
+ingress:
+  enabled: false
+  className: nginx
+  annotations:
+    nginx.ingress.kubernetes.io/ssl-redirect: "true"
+    nginx.ingress.kubernetes.io/proxy-body-size: "1m"
+  hosts:
+    - host: alerts-webhook.example.com
+      paths:
+        - path: /
+          pathType: Prefix
+  tls:
+    - secretName: alert-middleware-tls
+      hosts:
+        - alerts-webhook.example.com
+
+# ── Application Config ───────────────────────────────────────
+config:
+  slackDefaultChannel: "#alerts"
+  redisUrl: "redis://{{ .Release.Name }}-redis:6379/0"
+  redisTtlSeconds: "604800"
+  dedupWindowSeconds: "300"
+  resolveUpdateOriginal: "true"
+  resolveThreadReply: "true"
+  logLevel: "INFO"
+  environment: "production"
+
+# ── Secrets ──────────────────────────────────────────────────
+secrets:
+  # ⚠️ Override these in your values-prod.yaml or via --set
+  slackBotToken: ""
+  webhookSecret: ""
+
+# If using an existing secret instead of creating one
+existingSecret: ""
+
+# ── Resources ────────────────────────────────────────────────
+resources:
+  requests:
+    cpu: 100m
+    memory: 128Mi
+  limits:
+    cpu: 500m
+    memory: 256Mi
+
+# ── Probes ───────────────────────────────────────────────────
+livenessProbe:
+  httpGet:
+    path: /health
+    port: http
+  initialDelaySeconds: 10
+  periodSeconds: 30
+  timeoutSeconds: 5
+  failureThreshold: 3
+
+readinessProbe:
+  httpGet:
+    path: /ready
+    port: http
+  initialDelaySeconds: 5
+  periodSeconds: 10
+  timeoutSeconds: 5
+  failureThreshold: 3
+
+startupProbe:
+  httpGet:
+    path: /health
+    port: http
+  initialDelaySeconds: 5
+  periodSeconds: 5
+  failureThreshold: 10
+
+# ── Security ─────────────────────────────────────────────────
+podSecurityContext:
+  runAsNonRoot: true
+  runAsUser: 1000
+  runAsGroup: 1000
+  fsGroup: 1000
+
+securityContext:
+  allowPrivilegeEscalation: false
+  readOnlyRootFilesystem: true
+  capabilities:
+    drop:
+      - ALL
+
+serviceAccount:
+  create: true
+  name: ""
+  annotations: {}
+  automountServiceAccountToken: false
+
+# ── Pod Disruption Budget ────────────────────────────────────
+podDisruptionBudget:
+  enabled: true
+  minAvailable: 1
+
+# ── Network Policy ───────────────────────────────────────────
+networkPolicy:
+  enabled: true
+
+# ── Topology / Affinity ─────────────────────────────────────
+topologySpreadConstraints:
+  - maxSkew: 1
+    topologyKey: kubernetes.io/hostname
+    whenUnsatisfiable: DoNotSchedule
+
+nodeSelector: {}
+tolerations: []
+affinity: {}
+
+# ── Pod annotations ──────────────────────────────────────────
+podAnnotations:
+  prometheus.io/scrape: "true"
+  prometheus.io/port: "8000"
+  prometheus.io/path: "/metrics"
+
+# ── Redis (bundled) ──────────────────────────────────────────
+redis:
+  enabled: true
+  image:
+    repository: redis
+    tag: "7-alpine"
+  resources:
+    requests:
+      cpu: 100m
+      memory: 128Mi
+    limits:
+      cpu: 500m
+      memory: 512Mi
+  persistence:
+    enabled: true
+    size: 1Gi
+    # storageClass: ""
+  maxmemory: "256mb"
