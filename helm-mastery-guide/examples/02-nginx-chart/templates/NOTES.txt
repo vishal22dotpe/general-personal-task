@@ -1,0 +1,36 @@
+🚀 {{ .Chart.Name }} v{{ .Chart.AppVersion }} has been deployed!
+
+Release:   {{ .Release.Name }}
+Namespace: {{ .Release.Namespace }}
+Replicas:  {{ .Values.replicaCount }}
+
+{{- if .Values.ingress.enabled }}
+
+Access your Nginx at:
+{{- range .Values.ingress.hosts }}
+  http://{{ .host }}
+{{- end }}
+
+{{- else if eq .Values.service.type "NodePort" }}
+
+Access your Nginx via NodePort:
+  export NODE_PORT=$(kubectl get --namespace {{ .Release.Namespace }} -o jsonpath="{.spec.ports[0].nodePort}" services {{ include "my-nginx.fullname" . }})
+  export NODE_IP=$(kubectl get nodes --namespace {{ .Release.Namespace }} -o jsonpath="{.items[0].status.addresses[0].address}")
+  echo http://$NODE_IP:$NODE_PORT
+
+{{- else if eq .Values.service.type "LoadBalancer" }}
+
+Access your Nginx via LoadBalancer:
+  NOTE: It may take a few minutes for the LoadBalancer IP to be available.
+  kubectl get svc --namespace {{ .Release.Namespace }} -w {{ include "my-nginx.fullname" . }}
+
+{{- else }}
+
+Access your Nginx via port-forward:
+  kubectl port-forward svc/{{ include "my-nginx.fullname" . }} {{ .Values.service.port }}:{{ .Values.service.port }} --namespace {{ .Release.Namespace }}
+  Then visit: http://localhost:{{ .Values.service.port }}
+
+{{- end }}
+
+Run tests with:
+  helm test {{ .Release.Name }}

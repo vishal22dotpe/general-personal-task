@@ -1,0 +1,12 @@
+# Default values for hello-helm chart
+
+# The greeting message to display
+greeting: "Hello from Helm!"
+
+# Your name
+name: "World"
+
+# Extra settings to include
+extraSettings:
+  color: "blue"
+  language: "en"
