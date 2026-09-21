@@ -1,0 +1,26 @@
+# PRODUCTION environment overrides
+
+replicaCount: 5
+
+image:
+  tag: "2.0.0"
+  pullPolicy: IfNotPresent
+
+resources:
+  limits:
+    cpu: "1"
+    memory: 1Gi
+  requests:
+    cpu: 500m
+    memory: 512Mi
+
+config:
+  environment: "production"
+  logLevel: "warn"
+  features:
+    enableMetrics: true
+    enableTracing: true
+    enableDebugMode: false
+  database:
+    host: "prod-postgres.production.svc"
+    name: "myapp_prod"

@@ -1,0 +1,44 @@
+{{- if .Values.hooks.preInstall.enabled }}
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: {{ .Release.Name }}-pre-install
+  labels:
+    app: {{ .Values.appName }}
+  annotations:
+    # ═══════════════════════════════════════════
+    # HOOK ANNOTATIONS - This is what makes it special!
+    # ═══════════════════════════════════════════
+    
+    # When to run this hook
+    "helm.sh/hook": pre-install,pre-upgrade
+    
+    # Run BEFORE other hooks (lower = first)
+    "helm.sh/hook-weight": "-5"
+    
+    # Cleanup policy
+    "helm.sh/hook-delete-policy": before-hook-creation,hook-succeeded
+spec:
+  template:
+    metadata:
+      name: {{ .Release.Name }}-pre-install
+    spec:
+      restartPolicy: Never
+      containers:
+        - name: pre-install
+          image: busybox:1.36
+          command:
+            - /bin/sh
+            - -c
+            - |
+              echo "═══════════════════════════════════════"
+              echo "  PRE-INSTALL HOOK RUNNING"
+              echo "  {{ .Values.hooks.preInstall.message }}"
+              echo "  Release: {{ .Release.Name }}"
+              echo "  Time: $(date)"
+              echo "═══════════════════════════════════════"
+              echo "Simulating database migration..."
+              sleep 3
+              echo "Migration complete!"
+  backoffLimit: 1
+{{- end }}

@@ -1,0 +1,14 @@
+🎉 Congratulations! Your first Helm chart is deployed!
+
+Release Name:  {{ .Release.Name }}
+Namespace:     {{ .Release.Namespace }}
+Chart:         {{ .Chart.Name }}-{{ .Chart.Version }}
+
+Greeting:      {{ .Values.greeting }}
+Name:          {{ .Values.name }}
+
+To see your ConfigMap:
+  kubectl get configmap {{ .Release.Name }}-config -o yaml
+
+To try with custom values:
+  helm upgrade {{ .Release.Name }} ./01-basic-chart --set name="YourName"

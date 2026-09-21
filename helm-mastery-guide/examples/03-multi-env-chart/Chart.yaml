@@ -1,0 +1,6 @@
+apiVersion: v2
+name: multi-env-app
+description: Demonstrates multi-environment Helm deployment
+type: application
+version: 1.0.0
+appVersion: "2.0.0"

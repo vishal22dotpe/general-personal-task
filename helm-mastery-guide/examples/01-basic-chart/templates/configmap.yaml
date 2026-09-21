@@ -1,0 +1,24 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  # .Release.Name = whatever name you give at install time
+  name: {{ .Release.Name }}-config
+  labels:
+    app: {{ .Chart.Name }}
+    chart: {{ .Chart.Name }}-{{ .Chart.Version }}
+    release: {{ .Release.Name }}
+data:
+  # Simple value substitution
+  greeting: {{ .Values.greeting | quote }}
+  name: {{ .Values.name | quote }}
+  
+  # Using a pipe function (upper)
+  greeting_upper: {{ .Values.greeting | upper | quote }}
+
+  # Using default (fallback value)
+  app_version: {{ .Chart.AppVersion | default "unknown" | quote }}
+
+  # Iterating a map
+  {{- range $key, $value := .Values.extraSettings }}
+  {{ $key }}: {{ $value | quote }}
+  {{- end }}

@@ -1,0 +1,33 @@
+# Shared defaults (all environments inherit these)
+
+replicaCount: 1
+
+image:
+  repository: myorg/my-app
+  tag: ""
+  pullPolicy: IfNotPresent
+
+service:
+  type: ClusterIP
+  port: 80
+
+resources:
+  limits:
+    cpu: 200m
+    memory: 256Mi
+  requests:
+    cpu: 50m
+    memory: 64Mi
+
+config:
+  environment: "default"
+  logLevel: "info"
+  port: 8080
+  features:
+    enableMetrics: false
+    enableTracing: false
+    enableDebugMode: false
+  database:
+    host: "localhost"
+    port: 5432
+    name: "myapp"

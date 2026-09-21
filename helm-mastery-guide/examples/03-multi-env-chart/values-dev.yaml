@@ -1,0 +1,26 @@
+# DEV environment overrides
+
+replicaCount: 1
+
+image:
+  tag: "latest"
+  pullPolicy: Always
+
+resources:
+  limits:
+    cpu: 100m
+    memory: 128Mi
+  requests:
+    cpu: 25m
+    memory: 32Mi
+
+config:
+  environment: "development"
+  logLevel: "debug"
+  features:
+    enableMetrics: false
+    enableTracing: true
+    enableDebugMode: true
+  database:
+    host: "dev-postgres.default.svc"
+    name: "myapp_dev"

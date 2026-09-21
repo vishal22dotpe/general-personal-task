@@ -1,0 +1,11 @@
+# Hooks demo values
+
+appName: hooks-demo
+
+hooks:
+  preInstall:
+    enabled: true
+    message: "Running pre-install setup..."
+  postInstall:
+    enabled: true
+    message: "Running post-install verification..."

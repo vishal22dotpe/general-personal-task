@@ -1,0 +1,25 @@
+# STAGING environment overrides
+
+replicaCount: 2
+
+image:
+  tag: "rc-2.0.0"
+
+resources:
+  limits:
+    cpu: 300m
+    memory: 384Mi
+  requests:
+    cpu: 100m
+    memory: 128Mi
+
+config:
+  environment: "staging"
+  logLevel: "info"
+  features:
+    enableMetrics: true
+    enableTracing: true
+    enableDebugMode: false
+  database:
+    host: "staging-postgres.staging.svc"
+    name: "myapp_staging"
